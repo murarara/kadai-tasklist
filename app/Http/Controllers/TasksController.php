@@ -15,10 +15,20 @@ class TasksController extends Controller
      */
     public function index()
     {
-        $tasks = Task::all();
-        return view('tasks.index', [
-            'tasks' => $tasks,
-        ]);
+        $data = [];
+        if (\Auth::check()) {
+            // 認証済みユーザ（閲覧者）を取得
+            $user = \Auth::user();
+            // ユーザとフォロー中ユーザの投稿の一覧を作成日時の降順で取得
+            $tasks = $user->feed_tasks()->orderBy('id', 'asc')->paginate(10);
+
+            $data = [
+                'user' => $user,
+                'tasks' => $tasks,
+            ];
+        }
+        
+        return view('tasks.index', $data);
     }
 
     /**
@@ -48,11 +58,11 @@ class TasksController extends Controller
             'status' => 'required|max:10',
         ]);
         
-        // タスクを作成
-        $task = new Task;
-        $task->content = $request->content;
-        $task->status = $request->status;
-        $task->save();
+        // 認証済みユーザ（閲覧者）のタスクとして作成（リクエストされた値をもとに作成）
+        $request->user()->tasks()->create([
+            'content' => $request->content,
+            'status' => $request->status,
+        ]);
 
         // トップページへリダイレクトさせる
         return redirect('/');
@@ -69,7 +79,7 @@ class TasksController extends Controller
         // idの値でタスクを検索して取得
         $task = Task::find($id);
 
-        // メッセージ詳細ビューでそれを表示
+        // タスク詳細ビューでそれを表示
         return view('tasks.show', [
             'task' => $task,
         ]);
@@ -109,7 +119,7 @@ class TasksController extends Controller
         
         // idの値でタスクを検索して取得
         $task = Task::find($id);
-        // タスクを更新
+        
         $task->content = $request->content;
         $task->status = $request->status;
         $task->save();
@@ -128,7 +138,7 @@ class TasksController extends Controller
     {
         // idの値でタスクを検索して取得
         $task = Task::find($id);
-        // タスクを削除
+        
         $task->delete();
 
         // トップページへリダイレクトさせる
