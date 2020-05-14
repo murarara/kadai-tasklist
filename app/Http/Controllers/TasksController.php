@@ -120,9 +120,13 @@ class TasksController extends Controller
         // idの値でタスクを検索して取得
         $task = Task::find($id);
         
-        $task->content = $request->content;
-        $task->status = $request->status;
-        $task->save();
+        // 認証済みユーザ（閲覧者）がそのタスクの所有者である場合
+        if (\Auth::id() === $task->user_id) {
+            // タスクを更新
+            $task->content = $request->content;
+            $task->status = $request->status;
+            $task->save();
+        }
 
         // トップページへリダイレクトさせる
         return redirect('/');
@@ -138,8 +142,10 @@ class TasksController extends Controller
     {
         // idの値でタスクを検索して取得
         $task = Task::find($id);
-        
-        $task->delete();
+        // 認証済みユーザ（閲覧者）がそのタスクの所有者である場合は、投稿を削除
+        if (\Auth::id() === $task->user_id) {
+            $task->delete();
+        }
 
         // トップページへリダイレクトさせる
         return redirect('/');
